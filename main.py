@@ -37,6 +37,18 @@ def main():
             time.sleep(0.3)
 
     url = f"http://{HOST}:{PORT}/"
+
+    # 后台静默模式：只跑服务+监控，不弹任何窗口
+    if "--headless" in sys.argv:
+        print(f"[WorkTracker] 后台模式启动，服务地址: {url}")
+        print(f"[WorkTracker] 在浏览器打开 {url} 可随时查看记录")
+        try:
+            while True:
+                time.sleep(10)
+        except KeyboardInterrupt:
+            print("[WorkTracker] 已停止")
+        return
+
     if "--browser" in sys.argv:
         import webbrowser
         print(f"已启动，请在浏览器访问: {url}")
