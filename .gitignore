@@ -12,6 +12,8 @@ dist/
 
 # 数据与配置（含个人 API Key，切勿上传）
 data/config.json
+data/*.log
+data/*.err.log
 
 # 系统
 .DS_Store
