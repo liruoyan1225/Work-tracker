@@ -22,13 +22,26 @@ async function api(path, opts = {}) {
   return res.json();
 }
 
-async function post(path, body) {
+async function req(method, path, body) {
   return api(path, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: body ? JSON.stringify(body) : undefined,
   });
 }
+
+async function post(path, body) {
+  return req("POST", path, body);
+}
+
+const CAT_COLORS = {
+  "科研": "#4c8dff",
+  "项目": "#22d3ee",
+  "音乐": "#c084fc",
+  "休闲": "#f59e0b",
+  "未分类": "#64748b",
+};
+let toastHidden = new Set();
 
 function today() {
   const d = new Date();
@@ -94,7 +107,7 @@ async function loadTimeline(date) {
 
 function renderTimeline(data) {
   const s = data.summary || {};
-  $("kpi-active").textContent = fmtDuration(s.total_active_seconds);
+  $("kpi-active").textContent = fmtDuration(s.work_seconds);
   $("kpi-apps").textContent = (s.app_top || []).length;
   const notes = (data.records || []).filter(r => r.kind === "note");
   $("kpi-notes").textContent = notes.length;
@@ -167,29 +180,74 @@ async function loadStats(date) {
   $("st-date").value = date;
   const data = await api("/api/activities?date=" + date);
   const s = data.summary || {};
-  const hours = (s.hourly || []).map(h => h.seconds);
-  makeChart("chart-hourly", "bar", Array.from({ length: 24 }, (_, i) => i + "时"), hours,
-    Array.from({ length: 24 }, (_, i) => (i >= 9 && i <= 18) ? "#4c8dff" : "#2b3448"));
-  const top = (s.app_top || []).slice(0, 10);
-  if (top.length) {
-    makeChart("chart-apps", "doughnut", top.map(a => a.app), top.map(a => a.seconds),
-      top.map((_, i) => `hsl(${(i * 36) % 360}, 65%, 55%)`));
-  } else {
-    makeChart("chart-apps", "doughnut", [], [], "#2b3448");
-  }
 
-  // 本周统计
+  $("st-work").textContent = fmtDuration(s.work_seconds);
+  $("st-active").textContent = fmtDuration(s.total_active_seconds);
+  const cat = s.category_breakdown || {};
+  $("st-fun").textContent = fmtDuration((cat["音乐"] || 0) + (cat["休闲"] || 0));
+  $("st-unmarked").textContent = fmtDuration(cat["未分类"] || 0);
+
+  const hours = (s.hourly || []).map(h => h.seconds);
+  makeChart("chart-hourly", "bar", hours.map((_, i) => i + "时"), hours,
+    Array.from({ length: 24 }, (_, i) => (i >= 9 && i <= 18) ? "#4c8dff" : "#2b3448"));
+
+  renderCatBar(cat);
+  renderAppUsage(s.app_top || []);
+
+  // 本周整体
   const monday = getMonday(date);
   const sunday = addDays(monday, 6);
   const wk = await api(`/api/stats/range?start=${monday}&end=${sunday}`);
   if (wk.ok) {
-    $("wk-days").textContent = wk.days;
+    $("wk-days").textContent = wk.day_count;
     $("wk-total").textContent = fmtDuration(wk.summary.total_active_seconds);
     $("wk-top").textContent = (wk.summary.app_top[0] || {}).app || "--";
-    makeChart("chart-week", "bar", wk.dates || [], (wk.dates || []).map(d => {
-      return wk.summary && wk.summary.hourly ? 0 : 0;
-    }), "#22d3ee");
+    const days = (wk.days || []).map(d => d.date);
+    makeChart("chart-week", "bar", days, (wk.days || []).map(d => d.work_seconds), "#22d3ee");
   }
+}
+
+function renderCatBar(cat) {
+  const order = ["科研", "项目", "音乐", "休闲", "未分类"];
+  const total = order.reduce((a, k) => a + (cat[k] || 0), 0);
+  const el = $("cat-bar");
+  if (!total) { el.innerHTML = `<div class="empty">暂无数据</div>`; return; }
+  el.innerHTML = order.filter(k => cat[k]).map(k => {
+    const pct = Math.round(cat[k] / total * 100);
+    return `<div class="cat-bar-row">
+      <div class="cat-bar-name">${k}</div>
+      <div class="cat-bar-track">
+        <div class="cat-bar-fill" style="width:${pct}%;background:${CAT_COLORS[k]}"></div>
+      </div>
+      <div class="cat-bar-val">${fmtDuration(cat[k])} · ${pct}%</div>
+    </div>`;
+  }).join("");
+}
+
+function appColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return `hsl(${h % 360}, 58%, 55%)`;
+}
+
+function renderAppUsage(top) {
+  const el = $("app-usage-list");
+  if (!top.length) { el.innerHTML = `<div class="empty">暂无数据</div>`; return; }
+  const total = top.reduce((a, x) => a + x.seconds, 0) || 1;
+  const max = top[0].seconds || 1;
+  el.innerHTML = top.map((a, i) => {
+    const pct = Math.round(a.seconds / total * 100);
+    const w = Math.max(2, Math.round(a.seconds / max * 100));
+    const c = appColor(a.app);
+    return `<div class="au-row">
+      <div class="au-avatar" style="background:${c}">${esc((a.app || "?").charAt(0).toUpperCase())}</div>
+      <div class="au-main">
+        <div class="au-name">${i + 1}. ${esc(a.app)}</div>
+        <div class="au-track"><div class="au-fill" style="width:${w}%"></div></div>
+      </div>
+      <div class="au-meta">${fmtDuration(a.seconds)} <span class="pct">${pct}%</span></div>
+    </div>`;
+  }).join("");
 }
 
 function getMonday(dateStr) {
@@ -384,6 +442,86 @@ async function saveSettings() {
   } else alert("保存失败");
 }
 
+/* ---------------- 窗口标记 ---------------- */
+
+async function loadMarks() {
+  const res = await api("/api/marks");
+  renderMarksList(res.marks || []);
+}
+
+function renderMarksList(marks) {
+  const el = $("marks-list");
+  if (!marks.length) { el.innerHTML = `<div class="empty">暂无标记，可在上方添加</div>`; return; }
+  el.innerHTML = marks.map(m => `
+    <div class="mark-item" data-id="${esc(m.id)}">
+      <span class="mark-type">${m.match_type === "app" ? "应用名=" : "标题含"}</span>
+      <span class="mark-match" title="${esc(m.match)}">${esc(m.match)}</span>
+      <select class="mark-cat" data-id="${esc(m.id)}">
+        ${["科研", "项目", "音乐", "休闲"].map(c => `<option value="${c}" ${m.category === c ? "selected" : ""}>${c}</option>`).join("")}
+      </select>
+      <button class="mark-del" data-id="${esc(m.id)}">删除</button>
+    </div>`).join("");
+  el.querySelectorAll(".mark-cat").forEach(sel => sel.onchange = async () => {
+    await req("PATCH", `/api/marks/${sel.dataset.id}`, { category: sel.value });
+  });
+  el.querySelectorAll(".mark-del").forEach(btn => btn.onclick = async () => {
+    await api(`/api/marks/${btn.dataset.id}`, { method: "DELETE" });
+    loadMarks();
+  });
+}
+
+async function loadPending() {
+  const res = await api("/api/pending-marks");
+  const pending = res.pending || [];
+  renderPendingInTab(pending);
+  renderClassifyToast(pending);
+}
+
+function pendingButtonsHtml(p, withIgnore = true) {
+  const cats = ["科研", "项目", "音乐", "休闲"]
+    .map(c => `<button class="cat-btn c-${c}" data-key="${esc(p.key)}" data-cat="${c}">${c}</button>`).join("");
+  const skip = withIgnore ? `<button class="cat-btn skip" data-key="${esc(p.key)}" data-skip="1">忽略</button>` : "";
+  return cats + skip;
+}
+
+function bindPendingButtons(container, onDone) {
+  container.querySelectorAll(".cat-btn").forEach(b => b.onclick = async () => {
+    if (b.dataset.skip) await post("/api/pending-marks/skip", { key: b.dataset.key });
+    else await post("/api/pending-marks/classify", { key: b.dataset.key, category: b.dataset.cat });
+    toastHidden.delete(b.dataset.key);
+    loadPending();
+    loadMarks();
+    if (onDone) onDone();
+  });
+}
+
+function renderPendingInTab(pending) {
+  const el = $("pending-list");
+  if (!pending.length) { el.innerHTML = `<div class="empty">暂无待分类窗口</div>`; return; }
+  el.innerHTML = pending.map(p => `
+    <div class="pending-item">
+      <div class="pending-info">
+        <div class="pending-app">${esc(p.app)}</div>
+        <div class="pending-title" title="${esc(p.title)}">${esc(p.title)}</div>
+      </div>
+      <div class="pending-actions">${pendingButtonsHtml(p)}</div>
+    </div>`).join("");
+  bindPendingButtons(el);
+}
+
+function renderClassifyToast(pending) {
+  const visible = pending.filter(p => !toastHidden.has(p.key));
+  const toast = $("classify-toast");
+  if (!visible.length) { toast.style.display = "none"; return; }
+  toast.style.display = "block";
+  $("ct-body").innerHTML = visible.map(p => `
+    <div class="ct-item">
+      <div class="ct-title"><span class="ct-app">${esc(p.app)}</span>${esc(p.title)}</div>
+      <div class="ct-actions">${pendingButtonsHtml(p)}</div>
+    </div>`).join("");
+  bindPendingButtons($("ct-body"), () => loadStats($("st-date").value || today()));
+}
+
 /* ---------------- 监控状态与时钟 ---------------- */
 
 async function refreshMonitorStatus() {
@@ -439,6 +577,20 @@ function bind() {
   };
   $("set-ai-test").onclick = testAI;
   $("set-save").onclick = saveSettings;
+
+  // 窗口标记
+  $("mk-add").onclick = async () => {
+    const match = $("mk-match").value.trim();
+    if (!match) return;
+    await post("/api/marks", { match_type: $("mk-type").value, match, category: $("mk-category").value });
+    $("mk-match").value = "";
+    loadMarks();
+  };
+  $("mk-match").addEventListener("keydown", e => { if (e.key === "Enter") $("mk-add").click(); });
+  $("ct-close").onclick = () => {
+    api("/api/pending-marks").then(res => (res.pending || []).forEach(p => toastHidden.add(p.key)));
+    $("classify-toast").style.display = "none";
+  };
 }
 
 /* ---------------- 启动 ---------------- */
@@ -456,4 +608,7 @@ function bind() {
   loadConfig();
   refreshMonitorStatus();
   switchReportKind("日报");
+  loadMarks();
+  loadPending();
+  setInterval(loadPending, 5000);
 })();

@@ -12,6 +12,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from . import config as config_mod
 from . import storage, reporter
 from .ai import AIClient, AIError, DEFAULT_PROVIDERS
+from .marks import MarksManager, CATEGORIES
 from .monitor import ActivityMonitor, get_idle_seconds
 
 STATIC_DIR = os.path.join(config_mod.APP_DIR, "static")
@@ -20,6 +21,7 @@ STATIC_DIR = os.path.join(config_mod.APP_DIR, "static")
 class App:
     def __init__(self):
         self.cfg = config_mod.load_config()
+        self.marks = MarksManager(os.path.join(config_mod.APP_DIR, "data", "window_marks.json"))
         self.monitor = None
         self.flask_app = Flask(__name__, static_folder=None)
         self._register_routes()
@@ -34,6 +36,7 @@ class App:
             poll_interval=m.get("poll_interval", 5),
             idle_threshold=m.get("idle_threshold", 180),
             flush_interval=m.get("flush_interval", 60),
+            marks_manager=self.marks,
         )
         if m.get("enabled", True):
             self.monitor.start()
@@ -147,7 +150,7 @@ class App:
             date = request.args.get("date", datetime.date.today().strftime("%Y-%m-%d"))
             jd = self.cfg.get("journal_dir", "")
             records = storage.load_activities(jd, date)
-            summary = storage.summarize_activities(records)
+            summary = storage.summarize_activities(records, marks=self.marks)
             journal = storage.read_daily_journal(jd, date)
             return jsonify({
                 "date": date,
@@ -186,12 +189,82 @@ class App:
             jd = self.cfg.get("journal_dir", "")
             by_date = storage.activities_in_range(jd, start, end)
             all_records = [r for d in sorted(by_date) for r in by_date[d]]
+            days = []
+            for d in sorted(by_date):
+                s = storage.summarize_activities(by_date[d], marks=self.marks)
+                days.append({
+                    "date": d,
+                    "total_active_seconds": s["total_active_seconds"],
+                    "work_seconds": s["work_seconds"],
+                })
             return jsonify({
                 "ok": True,
-                "summary": storage.summarize_activities(all_records),
-                "days": len(by_date),
+                "summary": storage.summarize_activities(all_records, marks=self.marks),
+                "days": days,
+                "day_count": len(by_date),
                 "dates": sorted(by_date),
             })
+
+        # ---------- 窗口分类标记 ----------
+
+        @app.route("/api/marks", methods=["GET"])
+        def marks_list():
+            return jsonify({"ok": True, "marks": self.marks.all(), "categories": CATEGORIES})
+
+        @app.route("/api/marks", methods=["POST"])
+        def marks_add():
+            data = request.get_json(force=True) or {}
+            match_type = data.get("match_type", "title")
+            match = str(data.get("match", "")).strip()
+            category = data.get("category", "科研")
+            note = str(data.get("note", ""))
+            if not match:
+                return jsonify({"ok": False, "error": "匹配内容不能为空"}), 400
+            m = self.marks.add(match_type, match, category, note)
+            return jsonify({"ok": True, "mark": m})
+
+        @app.route("/api/marks/<mark_id>", methods=["PATCH", "PUT"])
+        def marks_update(mark_id):
+            data = request.get_json(force=True) or {}
+            m = self.marks.update(mark_id, **data)
+            if not m:
+                return jsonify({"ok": False, "error": "标记不存在"}), 404
+            return jsonify({"ok": True, "mark": m})
+
+        @app.route("/api/marks/<mark_id>", methods=["DELETE"])
+        def marks_delete(mark_id):
+            ok = self.marks.delete(mark_id)
+            return jsonify({"ok": ok})
+
+        # ---------- 待分类窗口 ----------
+
+        @app.route("/api/pending-marks", methods=["GET"])
+        def pending_marks():
+            pending = self.monitor.pending_marks() if self.monitor else []
+            # 已能被现有标记覆盖的窗口从待分类中隐藏
+            pending = [p for p in pending if not self.marks.find_category(p["app"], p["title"])[0]]
+            return jsonify({"ok": True, "pending": pending})
+
+        @app.route("/api/pending-marks/classify", methods=["POST"])
+        def pending_classify():
+            data = request.get_json(force=True) or {}
+            key = data.get("key")
+            category = data.get("category")
+            if not key or category not in CATEGORIES:
+                return jsonify({"ok": False, "error": "参数错误"}), 400
+            mark = self.monitor.classify_pending(key, category)
+            if not mark:
+                return jsonify({"ok": False, "error": "该窗口不在待分类队列"}), 404
+            return jsonify({"ok": True, "mark": mark})
+
+        @app.route("/api/pending-marks/skip", methods=["POST"])
+        def pending_skip():
+            data = request.get_json(force=True) or {}
+            key = data.get("key")
+            if not key:
+                return jsonify({"ok": False, "error": "参数错误"}), 400
+            self.monitor.skip_pending(key)
+            return jsonify({"ok": True})
 
         # 生成报告
         @app.route("/api/generate", methods=["POST"])

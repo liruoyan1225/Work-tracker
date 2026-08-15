@@ -1,18 +1,17 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
 
 where python >nul 2>nul
 if errorlevel 1 (
-    echo [é”™è¯¯] æœªæ‰¾åˆ° Pythonï¼Œè¯·å…ˆå®‰è£… Python 3.10+ å¹¶å‹¾é€‰ "Add to PATH"
+    echo [´íÎó] Î´ÕÒµ½ Python£¬ÇëÏÈ°²×° Python 3.10+ ²¢¹´Ñ¡ "Add to PATH"
     pause
     exit /b 1
 )
 
-echo [1/2] æ£€æŸ¥ä¾èµ–...
+echo [1/2] ¼ì²éÒÀÀµ...
 pip install -q -r requirements.txt
 
-echo [2/2] å¯åŠ¨ WorkTracker...
+echo [2/2] Æô¶¯ WorkTracker...
 python main.py %*
 
 pause

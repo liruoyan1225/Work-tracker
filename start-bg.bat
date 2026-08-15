@@ -1,28 +1,27 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
 
 echo ============================================
-echo   WorkTracker åå°è®°å½• å¯åŠ¨
+echo   WorkTracker ºóÌ¨¼ÇÂ¼ Æô¶¯
 echo ============================================
 echo.
 
 netstat -ano | findstr ":8765" | findstr "LISTENING" >nul
 if not errorlevel 1 (
-    echo [æç¤º] åå°æœåŠ¡å·²åœ¨è¿è¡Œï¼Œç›´æ¥åœ¨æµè§ˆå™¨æ‰“å¼€ http://127.0.0.1:8765 å³å¯æŸ¥çœ‹
+    echo [ÌáÊ¾] ºóÌ¨·şÎñÒÑÔÚÔËĞĞ£¬Ö±½ÓÔÚä¯ÀÀÆ÷´ò¿ª http://127.0.0.1:8765 ¼´¿É²é¿´
     start http://127.0.0.1:8765
     pause
     exit /b 0
 )
 
-echo [1/2] æ£€æŸ¥ä¾èµ–...
+echo [1/2] ¼ì²éÒÀÀµ...
 pip install -q -r requirements.txt
 
-echo [2/2] åå°é™é»˜å¯åŠ¨ï¼ˆæ— çª—å£ï¼Œè‡ªåŠ¨è®°å½•ä¸­ï¼‰...
+echo [2/2] ºóÌ¨¾²Ä¬Æô¶¯£¨ÎŞ´°¿Ú£¬×Ô¶¯¼ÇÂ¼ÖĞ£©...
 "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -Command "Start-Process -FilePath 'python' -ArgumentList 'main.py --headless' -WorkingDirectory '%CD%' -WindowStyle Hidden -RedirectStandardOutput '%CD%\data\app.log' -RedirectStandardError '%CD%\data\app.err.log'"
 
 echo.
-echo å·²å¯åŠ¨ï¼æµè§ˆå™¨æ‰“å¼€ http://127.0.0.1:8765 å¯éšæ—¶æŸ¥çœ‹æ—¶é—´çº¿
-echo æƒ³åœæ­¢æ—¶è¿è¡Œ stop-bg.bat
+echo ÒÑÆô¶¯£¡ä¯ÀÀÆ÷´ò¿ª http://127.0.0.1:8765 ¿ÉËæÊ±²é¿´Ê±¼äÏß
+echo ÏëÍ£Ö¹Ê±ÔËĞĞ stop-bg.bat
 echo.
 pause

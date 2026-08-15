@@ -19,6 +19,7 @@
     <nav class="nav">
       <button class="nav-item active" data-tab="timeline"><span class="nav-ico">🕐</span>时间线</button>
       <button class="nav-item" data-tab="stats"><span class="nav-ico">📊</span>统计</button>
+      <button class="nav-item" data-tab="marks"><span class="nav-ico">🏷️</span>窗口标记</button>
       <button class="nav-item" data-tab="report"><span class="nav-ico">📝</span>生成报告</button>
       <button class="nav-item" data-tab="journal"><span class="nav-ico">📔</span>日记</button>
       <button class="nav-item" data-tab="settings"><span class="nav-ico">⚙️</span>设置</button>
@@ -73,13 +74,23 @@
           <button id="st-load" class="btn-primary">查看</button>
         </div>
       </div>
-      <div class="card">
-        <h3>每小时活跃时长</h3>
-        <canvas id="chart-hourly" height="120"></canvas>
+      <div class="kpi-row">
+        <div class="kpi-card"><div class="kpi-val" id="st-work">0分</div><div class="kpi-label">有效工作时长</div></div>
+        <div class="kpi-card"><div class="kpi-val" id="st-active">0分</div><div class="kpi-label">屏幕活跃时长</div></div>
+        <div class="kpi-card"><div class="kpi-val" id="st-fun">0分</div><div class="kpi-label">音乐/休闲</div></div>
+        <div class="kpi-card"><div class="kpi-val" id="st-unmarked">0分</div><div class="kpi-label">待分类</div></div>
       </div>
       <div class="card">
-        <h3>应用使用占比（Top 10）</h3>
-        <canvas id="chart-apps" height="120"></canvas>
+        <h3>分类占比</h3>
+        <div id="cat-bar" class="cat-bar"><div class="empty">暂无数据</div></div>
+      </div>
+      <div class="card">
+        <h3>每小时活跃时长</h3>
+        <canvas id="chart-hourly" height="90"></canvas>
+      </div>
+      <div class="card">
+        <h3>应用使用排行</h3>
+        <div id="app-usage-list" class="app-usage-list"><div class="empty">暂无数据</div></div>
       </div>
       <div class="card">
         <h3>本周整体统计</h3>
@@ -89,6 +100,35 @@
           <div class="kpi-card"><div class="kpi-val" id="wk-top">--</div><div class="kpi-label">Top 应用</div></div>
         </div>
         <canvas id="chart-week" height="90"></canvas>
+      </div>
+    </section>
+
+    <!-- ============ 窗口标记 ============ -->
+    <section id="tab-marks" class="panel">
+      <div class="panel-head"><h2>窗口分类标记</h2></div>
+      <div class="card">
+        <h3>🆕 待分类窗口</h3>
+        <p class="hint">新出现且尚未分类的窗口会出现在这里。选择类别后，同类窗口以后不再询问。也可以点击「忽略」暂时跳过。</p>
+        <div id="pending-list" class="pending-list"><div class="empty">暂无待分类窗口</div></div>
+      </div>
+      <div class="card">
+        <h3>📑 已保存的标记</h3>
+        <p class="hint">「应用名=」按程序名精确匹配；「标题含」按窗口标题包含的关键词匹配（适合浏览器网站，如 youtube、bilibili、arxiv）。</p>
+        <div class="add-mark">
+          <select id="mk-type" class="select-input">
+            <option value="title">标题含</option>
+            <option value="app">应用名=</option>
+          </select>
+          <input id="mk-match" type="text" class="text-input grow" placeholder="如 youtube / bilibili / vscode.exe">
+          <select id="mk-category" class="select-input">
+            <option value="科研">科研</option>
+            <option value="项目">项目</option>
+            <option value="音乐">音乐</option>
+            <option value="休闲">休闲</option>
+          </select>
+          <button id="mk-add" class="btn-primary">添加</button>
+        </div>
+        <div id="marks-list" class="marks-list"><div class="empty">暂无标记</div></div>
       </div>
     </section>
 
@@ -210,6 +250,15 @@
       </div>
     </section>
   </main>
+</div>
+
+<!-- 新窗口分类弹窗 -->
+<div id="classify-toast" class="classify-toast" style="display:none">
+  <div class="ct-head">
+    <span>📌 新窗口，请分类</span>
+    <button id="ct-close" class="ct-close">×</button>
+  </div>
+  <div id="ct-body" class="ct-body"></div>
 </div>
 
 <script src="vendor/chart.umd.js"></script>

@@ -150,20 +150,40 @@ def list_reports(journal_dir: str) -> list:
 
 # ---------- 聚合统计 ----------
 
-def summarize_activities(records: list) -> dict:
-    """把活动记录聚合为: 应用时长 Top、总活跃时长、分类时间线、按小时分布"""
+def summarize_activities(records: list, marks=None, work_categories=None) -> dict:
+    """把活动记录聚合为: 应用时长 Top、总活跃时长、有效工作时长、分类分布、按小时分布。
+
+    - total_active_seconds : 非空闲总时长
+    - work_seconds         : 有效工作时长 = 非空闲 且 类别∈(科研/项目) 或 未分类
+    - category_breakdown   : {类别: 秒}
+    """
+    work_categories = work_categories or ["科研", "项目"]
     app_time = {}
     total_active = 0
+    work_seconds = 0
+    category_seconds = {}
     hourly = {}
     for r in records:
         if r.get("kind") != "activity":
             continue
         app = r.get("app", "unknown")
+        title = r.get("title", "")
         duration = int(r.get("duration") or 0)
         if duration <= 0:
             continue
+        if app == "idle":
+            continue  # 空闲不算
         total_active += duration
         app_time[app] = app_time.get(app, 0) + duration
+
+        cat = None
+        if marks is not None:
+            cat, _ = marks.find_category(app, title)
+        label = cat if cat else "未分类"
+        category_seconds[label] = category_seconds.get(label, 0) + duration
+        if cat is None or cat in work_categories:
+            work_seconds += duration
+
         start = r.get("start")
         if start:
             try:
@@ -174,6 +194,8 @@ def summarize_activities(records: list) -> dict:
     app_top = sorted(app_time.items(), key=lambda x: x[1], reverse=True)
     return {
         "total_active_seconds": total_active,
+        "work_seconds": work_seconds,
+        "category_breakdown": category_seconds,
         "app_top": [{"app": k, "seconds": v} for k, v in app_top],
         "hourly": [{"hour": h, "seconds": hourly.get(h, 0)} for h in [f"{i:02d}" for i in range(24)]],
     }

@@ -1,11 +1,10 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
 
-echo æ­£åœ¨åœæ­¢ WorkTracker åå°è®°å½•...
+echo ÕıÔÚÍ£Ö¹ WorkTracker ºóÌ¨¼ÇÂ¼...
 for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":8765" ^| findstr "LISTENING"') do (
-    echo ç»“æŸè¿›ç¨‹ PID %%p
+    echo ½áÊø½ø³Ì PID %%p
     taskkill /PID %%p /F >nul 2>nul
 )
-echo å·²åœæ­¢ã€‚ä¸‹æ¬¡å¯åŠ¨è¿è¡Œ start-bg.bat å³å¯ã€‚
+echo ÒÑÍ£Ö¹¡£ÏÂ´ÎÆô¶¯ÔËĞĞ start-bg.bat ¼´¿É¡£
 pause

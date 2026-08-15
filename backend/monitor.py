@@ -23,6 +23,8 @@ try:
 except ImportError:
     psutil = None
 
+from .marks import MarksManager
+
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
@@ -63,18 +65,21 @@ class ActivityMonitor:
         idle_threshold: int = 180,
         flush_interval: int = 60,
         on_event=None,
+        marks_manager=None,
     ):
         self.journal_dir = journal_dir
         self.poll_interval = max(1, int(poll_interval))
         self.idle_threshold = max(5, int(idle_threshold))
         self.flush_interval = max(10, int(flush_interval))
         self.on_event = on_event  # 可选回调: on_event(record)
+        self.marks = marks_manager  # 可选: MarksManager，用于分类标记
         self._stop = threading.Event()
         self._thread = None
         self._current = None
         self._lock = threading.Lock()
         self._last_flush = time.monotonic()
-        self._last_write = {}
+        self._pending = {}   # key -> {app, title, first_seen} 待分类窗口
+        self._skipped = set()  # 本次会话用户选择"忽略"的 key
 
     # ---------- 公开接口 ----------
 
@@ -105,6 +110,46 @@ class ActivityMonitor:
                 pass
         return record
 
+    # ---------- 待分类队列 ----------
+
+    def _window_key(self, app, title) -> str:
+        return f"{app}|{title}"
+
+    def _maybe_queue_pending(self, app, title, now: datetime.datetime):
+        """新窗口出现且未分类时，加入待分类队列"""
+        if not self.marks or not app or app == "idle":
+            return
+        if self.marks.find_category(app, title)[0]:
+            return
+        key = self._window_key(app, title)
+        if key in self._skipped:
+            return
+        if key not in self._pending:
+            self._pending[key] = {
+                "key": key,
+                "app": app,
+                "title": title,
+                "first_seen": now.strftime("%Y-%m-%dT%H:%M:%S"),
+            }
+
+    def pending_marks(self) -> list:
+        return list(self._pending.values())
+
+    def classify_pending(self, key: str, category: str) -> dict:
+        """用户对某个待分类窗口选择了类别：保存标记并移出队列"""
+        item = self._pending.pop(key, None)
+        if not item:
+            return None
+        match_type, match = self.marks.suggest_match(item["app"], item["title"])
+        return self.marks.add(match_type, match, category,
+                              note=f"来自窗口: {MarksManager.normalize_title(item['title'])}")
+
+    def skip_pending(self, key: str) -> bool:
+        if key in self._pending:
+            del self._pending[key]
+        self._skipped.add(key)
+        return True
+
     # ---------- 内部实现 ----------
 
     def _run(self):
@@ -112,6 +157,7 @@ class ActivityMonitor:
         initial = self._get_foreground()
         if initial:
             self._current = _MonitorState(*initial, datetime.datetime.now())
+            self._maybe_queue_pending(*initial, datetime.datetime.now())
         while not self._stop.is_set():
             time.sleep(self.poll_interval)
             now = datetime.datetime.now()
@@ -132,6 +178,7 @@ class ActivityMonitor:
                 self._finalize_current(now=now)
         if front and not self._current:
             self._current = _MonitorState(*front, now)
+            self._maybe_queue_pending(front[0], front[1], now)
 
         # 周期性刷新当前段的结束时间，防止崩溃丢失数据
         if time.monotonic() - self._last_flush >= self.flush_interval:
