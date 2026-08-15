@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkTracker · 科研工作记录助手</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">WT</div>
+      <div class="brand-text">
+        <h1>WorkTracker</h1>
+        <p>科研工作记录助手</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-tab="timeline"><span class="nav-ico">🕐</span>时间线</button>
+      <button class="nav-item" data-tab="stats"><span class="nav-ico">📊</span>统计</button>
+      <button class="nav-item" data-tab="report"><span class="nav-ico">📝</span>生成报告</button>
+      <button class="nav-item" data-tab="journal"><span class="nav-ico">📔</span>日记</button>
+      <button class="nav-item" data-tab="settings"><span class="nav-ico">⚙️</span>设置</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div id="monitor-status" class="monitor-status">
+        <span class="dot"></span> 后台监控中
+      </div>
+      <div id="clock" class="clock">--:--</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- ============ 时间线 ============ -->
+    <section id="tab-timeline" class="panel active">
+      <div class="panel-head">
+        <div class="date-nav">
+          <button id="tl-prev" class="btn-ghost">← 前一天</button>
+          <input id="tl-date" type="date" class="date-input">
+          <button id="tl-next" class="btn-ghost">后一天 →</button>
+          <button id="tl-today" class="btn-ghost">今天</button>
+        </div>
+        <div class="quick-add">
+          <input id="quick-note" type="text" placeholder="快速记一条：写论文引言 / 跑实验……">
+          <button id="quick-note-btn" class="btn-primary">记录</button>
+        </div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-card"><div class="kpi-val" id="kpi-active">0分</div><div class="kpi-label">有效工作时长</div></div>
+        <div class="kpi-card"><div class="kpi-val" id="kpi-apps">0</div><div class="kpi-label">使用应用数</div></div>
+        <div class="kpi-card"><div class="kpi-val" id="kpi-notes">0</div><div class="kpi-label">手动记录</div></div>
+        <div class="kpi-card"><div class="kpi-val" id="kpi-focus">--</div><div class="kpi-label">最长专注段</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>今日时间线</h3>
+          <div id="timeline-list" class="timeline"><div class="empty">正在加载…</div></div>
+        </div>
+        <div class="card">
+          <h3>应用使用排行</h3>
+          <div id="app-bars" class="app-bars"><div class="empty">暂无数据</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 统计 ============ -->
+    <section id="tab-stats" class="panel">
+      <div class="panel-head">
+        <h2>统计</h2>
+        <div class="date-nav">
+          <input id="st-date" type="date" class="date-input">
+          <button id="st-load" class="btn-primary">查看</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>每小时活跃时长</h3>
+        <canvas id="chart-hourly" height="120"></canvas>
+      </div>
+      <div class="card">
+        <h3>应用使用占比（Top 10）</h3>
+        <canvas id="chart-apps" height="120"></canvas>
+      </div>
+      <div class="card">
+        <h3>本周整体统计</h3>
+        <div class="kpi-row">
+          <div class="kpi-card"><div class="kpi-val" id="wk-days">0</div><div class="kpi-label">有记录天数</div></div>
+          <div class="kpi-card"><div class="kpi-val" id="wk-total">0分</div><div class="kpi-label">总活跃时长</div></div>
+          <div class="kpi-card"><div class="kpi-val" id="wk-top">--</div><div class="kpi-label">Top 应用</div></div>
+        </div>
+        <canvas id="chart-week" height="90"></canvas>
+      </div>
+    </section>
+
+    <!-- ============ 生成报告 ============ -->
+    <section id="tab-report" class="panel">
+      <div class="panel-head"><h2>生成报告</h2></div>
+      <div class="card">
+        <div class="report-type">
+          <button class="type-btn active" data-kind="日报">📋 日报</button>
+          <button class="type-btn" data-kind="周报">📅 周报</button>
+          <button class="type-btn" data-kind="月报">🗓️ 月报</button>
+        </div>
+        <div class="report-opts">
+          <label id="opt-date-label">日期 <input id="rep-date" type="date" class="date-input"></label>
+          <label id="opt-week-label" style="display:none">周范围
+            <span><input id="rep-wstart" type="date" class="date-input"> ~ <input id="rep-wend" type="date" class="date-input"></span>
+          </label>
+          <label id="opt-month-label" style="display:none">月份 <input id="rep-month" type="month" class="date-input"></label>
+        </div>
+        <div class="report-extra">
+          <label>额外要求（可选，如"我是研一学生，汇报给导师"）<input id="rep-extra" type="text" class="text-input" placeholder="例如：重点写论文进展；我是通信方向研究生"></label>
+        </div>
+        <div class="report-actions">
+          <button id="rep-generate" class="btn-primary">✨ 生成报告</button>
+          <button id="rep-save" class="btn-success" disabled>💾 保存到 journal</button>
+        </div>
+        <div id="rep-loading" class="loading" style="display:none">⏳ 正在调用 AI 生成，可能需要几十秒…</div>
+        <div id="rep-error" class="error-box" style="display:none"></div>
+      </div>
+      <div class="card" id="rep-preview-card" style="display:none">
+        <h3 id="rep-title">报告预览</h3>
+        <div id="rep-content" class="markdown-body"></div>
+      </div>
+      <div class="card">
+        <h3>已保存的报告</h3>
+        <div id="rep-list" class="report-list"><div class="empty">暂无报告</div></div>
+      </div>
+    </section>
+
+    <!-- ============ 日记 ============ -->
+    <section id="tab-journal" class="panel">
+      <div class="panel-head">
+        <h2>日记</h2>
+        <div class="date-nav">
+          <input id="jn-date" type="date" class="date-input">
+          <button id="jn-load" class="btn-ghost">打开</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="journal-toolbar">
+          <span>快速追加到板块：</span>
+          <select id="jn-section" class="select-input">
+            <option>## 📌 今日进展</option>
+            <option>## ⚠️ 遇到的问题</option>
+            <option>## 📝 收获与思考</option>
+            <option>## 🗓️ 明日待办计划</option>
+          </select>
+          <input id="jn-append-text" type="text" class="text-input grow" placeholder="要追加的内容…">
+          <button id="jn-append-btn" class="btn-primary">追加</button>
+        </div>
+        <textarea id="jn-editor" class="editor" placeholder="当日日记（Markdown）"></textarea>
+        <div class="report-actions">
+          <button id="jn-save" class="btn-primary">💾 保存日记</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 设置 ============ -->
+    <section id="tab-settings" class="panel">
+      <div class="panel-head"><h2>设置</h2></div>
+      <div class="card">
+        <h3>📁 数据位置</h3>
+        <p class="hint">你的 journal 目录（WorkTracker 直接读写这里）。默认是你的 Obsidian 日志目录。</p>
+        <input id="set-journal" type="text" class="text-input" placeholder="journal 目录路径">
+      </div>
+      <div class="card">
+        <h3>🤖 AI 配置</h3>
+        <p class="hint">使用 OpenAI 兼容接口。填你自己的 API Key，可接 GPT / DeepSeek / Kimi / 本地 Ollama。</p>
+        <div class="form-row">
+          <label>服务商
+            <select id="set-provider" class="select-input">
+              <option value="">自定义…</option>
+            </select>
+          </label>
+          <label>API 地址 <input id="set-baseurl" type="text" class="text-input" placeholder="https://api.deepseek.com/v1"></label>
+        </div>
+        <div class="form-row">
+          <label>API Key <input id="set-apikey" type="password" class="text-input" placeholder="sk-..."></label>
+          <label>模型 <input id="set-model" type="text" class="text-input" placeholder="deepseek-chat"></label>
+        </div>
+        <div class="form-row">
+          <label>温度 <input id="set-temperature" type="number" step="0.1" min="0" max="2" class="text-input small" value="0.7"></label>
+          <label class="check-label"><input id="set-ai-enabled" type="checkbox"> 启用 AI 生成</label>
+          <button id="set-ai-test" class="btn-ghost">测试连接</button>
+        </div>
+        <div id="set-ai-result" class="hint"></div>
+      </div>
+      <div class="card">
+        <h3>🖥️ 后台监控</h3>
+        <p class="hint">后台自动记录前台窗口使用情况（仅记录窗口标题与时长，不做截图）。空闲超过阈值视为休息。</p>
+        <div class="form-row">
+          <label class="check-label"><input id="set-monitor-enabled" type="checkbox"> 启用自动记录</label>
+          <label>轮询间隔(秒) <input id="set-poll" type="number" min="1" max="60" class="text-input small" value="5"></label>
+          <label>空闲阈值(秒) <input id="set-idle" type="number" min="10" max="3600" class="text-input small" value="180"></label>
+        </div>
+      </div>
+      <div class="card">
+        <button id="set-save" class="btn-primary">💾 保存设置</button>
+        <span id="set-saved" class="saved-tip" style="display:none">已保存 ✓</span>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="vendor/chart.umd.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
