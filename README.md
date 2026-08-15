@@ -53,13 +53,16 @@ python main.py --browser :: 浏览器模式（不弹窗口）
 
 | 服务商 | API 地址 | 模型 | 备注 |
 |--------|----------|------|------|
-| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` | 国内直连、便宜，推荐 |
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-v4-flash` | 国内直连、便宜，推荐（V4 Flash 即当前主力免费档模型） |
 | OpenAI (GPT) | `https://api.openai.com/v1` | `gpt-4o-mini` | 需要自己的 API Key |
 | Kimi | `https://api.moonshot.cn/v1` | `moonshot-v1-8k` | |
 | 本地 Ollama | `http://127.0.0.1:11434/v1` | `qwen2.5:7b` | 完全离线 |
 
+> 选择服务商后，**模型可从下拉列表直接选择**（如 DeepSeek 的 `deepseek-v4-flash` / `deepseek-v4-pro`），
+> 也可以在下拉选「从列表选择模型…」后直接**输入任意模型 ID**（适用于你自己有特殊模型名的情况）。
+
 > ⚠️ **没有免费的 GPT API**：OpenAI 的「免费额度」指 ChatGPT 网页版，不适用于 API 调用。
-> 请在对应平台官网注册获取你自己的 API Key（DeepSeek 注册即送少量体验额度，且按量计费非常便宜）。
+> 请在对应平台官网注册获取你自己的 API Key（DeepSeek V4 Flash 有免费体验额度，按量计费也极便宜）。
 
 填好后点「测试连接」验证，通过后勾选「启用 AI 生成」。
 

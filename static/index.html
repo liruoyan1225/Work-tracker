@@ -166,7 +166,7 @@
       </div>
       <div class="card">
         <h3>🤖 AI 配置</h3>
-        <p class="hint">使用 OpenAI 兼容接口。填你自己的 API Key，可接 GPT / DeepSeek / Kimi / 本地 Ollama。</p>
+        <p class="hint">使用 OpenAI 兼容接口。选择服务商后，模型可从下拉列表选择，也可直接输入任意模型 ID。填你自己的 API Key，可接 GPT / DeepSeek / Kimi / 本地 Ollama。</p>
         <div class="form-row">
           <label>服务商
             <select id="set-provider" class="select-input">
@@ -177,7 +177,16 @@
         </div>
         <div class="form-row">
           <label>API Key <input id="set-apikey" type="password" class="text-input" placeholder="sk-..."></label>
-          <label>模型 <input id="set-model" type="text" class="text-input" placeholder="deepseek-chat"></label>
+        </div>
+        <div class="form-row">
+          <label>模型
+            <span class="model-pick">
+              <select id="set-model-preset" class="select-input">
+                <option value="">从列表选择模型…</option>
+              </select>
+              <input id="set-model" type="text" class="text-input" placeholder="或输入自定义模型 ID">
+            </span>
+          </label>
         </div>
         <div class="form-row">
           <label>温度 <input id="set-temperature" type="number" step="0.1" min="0" max="2" class="text-input small" value="0.7"></label>

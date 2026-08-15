@@ -178,6 +178,9 @@ body {
 /* ---------- 设置 ---------- */
 .form-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
 .form-row label { display: flex; flex-direction: column; gap: 5px; color: var(--text-dim); font-size: 12px; flex: 1; min-width: 160px; }
+.model-pick { display: flex; gap: 8px; width: 100%; }
+.model-pick .select-input { min-width: 0; width: 46%; flex-shrink: 0; }
+.model-pick .text-input { flex: 1; }
 .check-label { flex-direction: row !important; align-items: center; gap: 7px !important; }
 .check-label input { accent-color: var(--accent); width: 15px; height: 15px; }
 .saved-tip { color: var(--ok); margin-left: 10px; }

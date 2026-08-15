@@ -85,7 +85,8 @@ DEFAULT_PROVIDERS = [
         "name": "deepseek",
         "label": "DeepSeek",
         "base_url": "https://api.deepseek.com/v1",
-        "model": "deepseek-chat",
+        "model": "deepseek-v4-flash",
+        "models": ["deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat", "deepseek-reasoner"],
         "default": True,
     },
     {
@@ -93,6 +94,7 @@ DEFAULT_PROVIDERS = [
         "label": "OpenAI (GPT)",
         "base_url": "https://api.openai.com/v1",
         "model": "gpt-4o-mini",
+        "models": ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
         "default": False,
     },
     {
@@ -100,6 +102,7 @@ DEFAULT_PROVIDERS = [
         "label": "Kimi (Moonshot)",
         "base_url": "https://api.moonshot.cn/v1",
         "model": "moonshot-v1-8k",
+        "models": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"],
         "default": False,
     },
     {
@@ -107,6 +110,7 @@ DEFAULT_PROVIDERS = [
         "label": "本地 Ollama",
         "base_url": "http://127.0.0.1:11434/v1",
         "model": "qwen2.5:7b",
+        "models": ["qwen2.5:7b", "qwen2.5:14b", "llama3.1:8b", "deepseek-r1:7b"],
         "default": False,
     },
 ]

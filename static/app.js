@@ -318,8 +318,22 @@ async function loadConfig() {
   sel.innerHTML = '<option value="">自定义…</option>';
   (CONFIG.providers || []).forEach(p => {
     const o = document.createElement("option");
-    o.value = JSON.stringify({ base_url: p.base_url, model: p.model });
+    o.value = JSON.stringify({ base_url: p.base_url, model: p.model, models: p.models || [] });
     o.textContent = p.label;
+    sel.appendChild(o);
+  });
+  // 根据已保存的 base_url 匹配服务商，填充该服务的模型列表
+  const saved = (CONFIG.providers || []).find(p => CONFIG.ai.base_url === p.base_url);
+  fillModelPresets(saved ? saved.models : []);
+}
+
+function fillModelPresets(models) {
+  const sel = $("set-model-preset");
+  sel.innerHTML = '<option value="">从列表选择模型…</option>';
+  (models || []).forEach(m => {
+    const o = document.createElement("option");
+    o.value = m;
+    o.textContent = m;
     sel.appendChild(o);
   });
 }
@@ -330,6 +344,7 @@ function onProviderChange() {
   const p = JSON.parse(val);
   $("set-baseurl").value = p.base_url;
   $("set-model").value = p.model;
+  fillModelPresets(p.models);
 }
 
 async function testAI() {
@@ -418,6 +433,10 @@ function bind() {
 
   // 设置
   $("set-provider").onchange = onProviderChange;
+  $("set-model-preset").onchange = () => {
+    const v = $("set-model-preset").value;
+    if (v) $("set-model").value = v;
+  };
   $("set-ai-test").onclick = testAI;
   $("set-save").onclick = saveSettings;
 }

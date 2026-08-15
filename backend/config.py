@@ -12,7 +12,7 @@ DEFAULT_CONFIG = {
         "provider": "deepseek",
         "base_url": "https://api.deepseek.com/v1",
         "api_key": "",
-        "model": "deepseek-chat",
+        "model": "deepseek-v4-flash",
         "temperature": 0.7,
         "timeout": 180,
     },
